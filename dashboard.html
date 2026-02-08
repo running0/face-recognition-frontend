@@ -1,0 +1,566 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>学生答题数据看板</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'PingFang SC', 'Microsoft YaHei', sans-serif;
+            background-color: #f5f7fa;
+            color: #333;
+        }
+        
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            border-radius: 12px;
+            margin-bottom: 30px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        
+        .header h1 {
+            font-size: 28px;
+            margin-bottom: 10px;
+        }
+        
+        .header p {
+            opacity: 0.9;
+        }
+        
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+        
+        .stat-card {
+            background: white;
+            padding: 25px;
+            border-radius: 12px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            transition: transform 0.3s ease;
+        }
+        
+        .stat-card:hover {
+            transform: translateY(-5px);
+        }
+        
+        .stat-card .label {
+            font-size: 14px;
+            color: #666;
+            margin-bottom: 10px;
+        }
+        
+        .stat-card .value {
+            font-size: 36px;
+            font-weight: bold;
+            color: #333;
+        }
+        
+        .stat-card .value.highlight {
+            color: #667eea;
+        }
+        
+        .charts-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(500px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+        
+        .chart-card {
+            background: white;
+            padding: 25px;
+            border-radius: 12px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+        
+        .chart-card h3 {
+            font-size: 18px;
+            margin-bottom: 20px;
+            color: #333;
+        }
+        
+        .table-container {
+            background: white;
+            padding: 25px;
+            border-radius: 12px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+        
+        .table-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+        
+        .table-header h3 {
+            font-size: 18px;
+            color: #333;
+        }
+        
+        .filter-container {
+            display: flex;
+            gap: 10px;
+        }
+        
+        .filter-container select {
+            padding: 8px 12px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            font-size: 14px;
+        }
+        
+        .filter-container button {
+            padding: 8px 16px;
+            background: #667eea;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: background 0.3s ease;
+        }
+        
+        .filter-container button:hover {
+            background: #5568d3;
+        }
+        
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        
+        th, td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #eee;
+        }
+        
+        th {
+            background: #f8f9fa;
+            font-weight: 600;
+            color: #666;
+            font-size: 14px;
+        }
+        
+        tr:hover {
+            background: #f8f9fa;
+        }
+        
+        .score-high {
+            color: #22c55e;
+            font-weight: bold;
+        }
+        
+        .score-medium {
+            color: #eab308;
+            font-weight: bold;
+        }
+        
+        .score-low {
+            color: #ef4444;
+            font-weight: bold;
+        }
+        
+        .delete-btn {
+            padding: 6px 12px;
+            background: #ef4444;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 12px;
+            transition: background 0.3s ease;
+        }
+        
+        .delete-btn:hover {
+            background: #dc2626;
+        }
+        
+        .pagination {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 10px;
+            margin-top: 20px;
+        }
+        
+        .pagination button {
+            padding: 8px 16px;
+            border: 1px solid #ddd;
+            background: white;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        .pagination button:hover:not(:disabled) {
+            background: #667eea;
+            color: white;
+            border-color: #667eea;
+        }
+        
+        .pagination button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        
+        .pagination .info {
+            color: #666;
+            font-size: 14px;
+        }
+        
+        .empty-state {
+            text-align: center;
+            padding: 40px;
+            color: #999;
+        }
+        
+        @media (max-width: 768px) {
+            .stats-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .charts-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .table-container {
+                overflow-x: auto;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>📊 学生答题数据看板</h1>
+            <p>人脸识别知识闯关 - 教师管理后台</p>
+        </div>
+        
+        <!-- 统计卡片 -->
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="label">总参与人数</div>
+                <div class="value" id="total-count">0</div>
+            </div>
+            <div class="stat-card">
+                <div class="label">平均分</div>
+                <div class="value highlight" id="avg-score">0</div>
+            </div>
+            <div class="stat-card">
+                <div class="label">最高分</div>
+                <div class="value" id="max-score">0</div>
+            </div>
+            <div class="stat-card">
+                <div class="label">及格率</div>
+                <div class="value" id="pass-rate">0%</div>
+            </div>
+        </div>
+        
+        <!-- 图表区域 -->
+        <div class="charts-grid">
+            <div class="chart-card">
+                <h3>📈 分数段分布</h3>
+                <canvas id="scoreDistributionChart"></canvas>
+            </div>
+            <div class="chart-card">
+                <h3>❌ 题目错误率统计</h3>
+                <canvas id="errorRateChart"></canvas>
+            </div>
+        </div>
+        
+        <!-- 学生列表 -->
+        <div class="table-container">
+            <div class="table-header">
+                <h3>📋 学生详细成绩</h3>
+                <div class="filter-container">
+                    <select id="class-filter">
+                        <option value="">全部班级</option>
+                    </select>
+                    <button onclick="loadStudents()">刷新</button>
+                </div>
+            </div>
+            <table>
+                <thead>
+                    <tr>
+                        <th>班级</th>
+                        <th>姓名</th>
+                        <th>座号</th>
+                        <th>得分</th>
+                        <th>提交时间</th>
+                        <th>操作</th>
+                    </tr>
+                </thead>
+                <tbody id="students-table">
+                </tbody>
+            </table>
+            <div class="pagination" id="pagination">
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        let currentPage = 1;
+        let totalPages = 1;
+        let currentClassFilter = '';
+        let scoreDistributionChart = null;
+        let errorRateChart = null;
+        
+        // 页面加载时初始化
+        document.addEventListener('DOMContentLoaded', () => {
+            loadStats();
+            loadStudents();
+            loadClassFilter();
+        });
+        
+        // 加载统计数据
+        async function loadStats() {
+            try {
+                const response = await fetch('/api/dashboard/stats');
+                const data = await response.json();
+                
+                // 更新统计卡片
+                document.getElementById('total-count').textContent = data.total_count;
+                document.getElementById('avg-score').textContent = data.avg_score;
+                document.getElementById('max-score').textContent = data.max_score;
+                document.getElementById('pass-rate').textContent = data.pass_rate + '%';
+                
+                // 更新分数段分布图
+                updateScoreDistribution(data.score_distribution);
+                
+                // 更新错误率图
+                updateErrorRate(data.error_rates);
+            } catch (error) {
+                console.error('加载统计数据失败:', error);
+            }
+        }
+        
+        // 加载学生列表
+        async function loadStudents(page = 1) {
+            try {
+                currentPage = page;
+                currentClassFilter = document.getElementById('class-filter').value;
+                
+                let url = `/api/dashboard/students?page=${page}&per_page=20`;
+                if (currentClassFilter) {
+                    url += `&class=${encodeURIComponent(currentClassFilter)}`;
+                }
+                
+                const response = await fetch(url);
+                const data = await response.json();
+                
+                renderStudentsTable(data.students);
+                renderPagination(data.pagination);
+            } catch (error) {
+                console.error('加载学生列表失败:', error);
+            }
+        }
+        
+        // 加载班级筛选选项
+        async function loadClassFilter() {
+            try {
+                const response = await fetch('/api/dashboard/students?per_page=1000');
+                const data = await response.json();
+                
+                const classes = [...new Set(data.students.map(s => s.class_name))];
+                const select = document.getElementById('class-filter');
+                
+                classes.forEach(className => {
+                    const option = document.createElement('option');
+                    option.value = className;
+                    option.textContent = className;
+                    select.appendChild(option);
+                });
+            } catch (error) {
+                console.error('加载班级列表失败:', error);
+            }
+        }
+        
+        // 渲染学生表格
+        function renderStudentsTable(students) {
+            const tbody = document.getElementById('students-table');
+            
+            if (students.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="6" class="empty-state">暂无数据</td></tr>';
+                return;
+            }
+            
+            tbody.innerHTML = students.map(student => {
+                const scoreClass = student.score >= 90 ? 'score-high' : 
+                                 student.score >= 60 ? 'score-medium' : 'score-low';
+                const time = new Date(student.submit_time).toLocaleString('zh-CN');
+                
+                return `
+                    <tr>
+                        <td>${student.class_name}</td>
+                        <td>${student.student_name}</td>
+                        <td>${student.seat_number}</td>
+                        <td class="${scoreClass}">${student.score}</td>
+                        <td>${time}</td>
+                        <td>
+                            <button class="delete-btn" onclick="deleteStudent(${student.id})">删除</button>
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+        }
+        
+        // 渲染分页
+        function renderPagination(pagination) {
+            const container = document.getElementById('pagination');
+            totalPages = pagination.total_pages;
+            
+            container.innerHTML = `
+                <button onclick="loadStudents(1)" ${currentPage === 1 ? 'disabled' : ''}>首页</button>
+                <button onclick="loadStudents(${currentPage - 1})" ${currentPage === 1 ? 'disabled' : ''}>上一页</button>
+                <span class="info">第 ${currentPage} / ${totalPages} 页</span>
+                <button onclick="loadStudents(${currentPage + 1})" ${currentPage === totalPages ? 'disabled' : ''}>下一页</button>
+                <button onclick="loadStudents(${totalPages})" ${currentPage === totalPages ? 'disabled' : ''}>末页</button>
+            `;
+        }
+        
+        // 更新分数段分布图
+        function updateScoreDistribution(data) {
+            const ctx = document.getElementById('scoreDistributionChart').getContext('2d');
+            
+            if (scoreDistributionChart) {
+                scoreDistributionChart.destroy();
+            }
+            
+            const labels = data.map(d => d.grade);
+            const values = data.map(d => d.count);
+            
+            scoreDistributionChart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: '人数',
+                        data: values,
+                        backgroundColor: [
+                            'rgba(239, 68, 68, 0.7)',
+                            'rgba(234, 179, 8, 0.7)',
+                            'rgba(59, 130, 246, 0.7)',
+                            'rgba(16, 185, 129, 0.7)',
+                            'rgba(34, 197, 94, 0.7)'
+                        ],
+                        borderColor: [
+                            'rgb(239, 68, 68)',
+                            'rgb(234, 179, 8)',
+                            'rgb(59, 130, 246)',
+                            'rgb(16, 185, 129)',
+                            'rgb(34, 197, 94)'
+                        ],
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: {
+                            display: false
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: {
+                                stepSize: 1
+                            }
+                        }
+                    }
+                }
+            });
+        }
+        
+        // 更新错误率图
+        function updateErrorRate(data) {
+            const ctx = document.getElementById('errorRateChart').getContext('2d');
+            
+            if (errorRateChart) {
+                errorRateChart.destroy();
+            }
+            
+            const labels = data.map(d => d.question);
+            const values = data.map(d => d.error_rate);
+            
+            errorRateChart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: '错误率 (%)',
+                        data: values,
+                        backgroundColor: 'rgba(239, 68, 68, 0.7)',
+                        borderColor: 'rgb(239, 68, 68)',
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    indexAxis: 'y',
+                    plugins: {
+                        legend: {
+                            display: false
+                        }
+                    },
+                    scales: {
+                        x: {
+                            beginAtZero: true,
+                            max: 100,
+                            ticks: {
+                                callback: function(value) {
+                                    return value + '%';
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+        
+        // 删除学生记录
+        async function deleteStudent(id) {
+            if (!confirm('确定要删除这条记录吗？')) {
+                return;
+            }
+            
+            try {
+                const response = await fetch(`/api/dashboard/students/${id}`, {
+                    method: 'DELETE'
+                });
+                
+                if (response.ok) {
+                    alert('删除成功');
+                    loadStudents(currentPage);
+                    loadStats();
+                } else {
+                    alert('删除失败');
+                }
+            } catch (error) {
+                console.error('删除失败:', error);
+                alert('删除失败');
+            }
+        }
+    </script>
+</body>
+</html>
