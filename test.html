@@ -357,10 +357,13 @@
             await submitResult();
         }  
         
+        // 配置变量
+        const API_BASE_URL = 'https://face-recognition-backend-i5df.onrender.com';
+
         // 提交结果函数
         async function submitResult() {
             try {
-                const response = await fetch('/api/submit', {
+                const response = await fetch(`${API_BASE_URL}/api/submit`, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json'

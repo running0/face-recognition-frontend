@@ -319,6 +319,8 @@
     </div>
     
     <script>
+        // 配置变量
+        const API_BASE_URL = 'https://face-recognition-backend-i5df.onrender.com';
         let currentPage = 1;
         let totalPages = 1;
         let currentClassFilter = '';
@@ -335,7 +337,7 @@
         // 加载统计数据
         async function loadStats() {
             try {
-                const response = await fetch('/api/dashboard/stats');
+                const response = await fetch(`${API_BASE_URL}/api/dashboard/stats`);
                 const data = await response.json();
                 
                 // 更新统计卡片
@@ -360,7 +362,7 @@
                 currentPage = page;
                 currentClassFilter = document.getElementById('class-filter').value;
                 
-                let url = `/api/dashboard/students?page=${page}&per_page=20`;
+                let url = `${API_BASE_URL}/api/dashboard/students?page=${page}&per_page=20`;
                 if (currentClassFilter) {
                     url += `&class=${encodeURIComponent(currentClassFilter)}`;
                 }
@@ -378,7 +380,7 @@
         // 加载班级筛选选项
         async function loadClassFilter() {
             try {
-                const response = await fetch('/api/dashboard/students?per_page=1000');
+                const response = await fetch(`${API_BASE_URL}/api/dashboard/students?per_page=1000`);
                 const data = await response.json();
                 
                 const classes = [...new Set(data.students.map(s => s.class_name))];
@@ -545,7 +547,7 @@
             }
             
             try {
-                const response = await fetch(`/api/dashboard/students/${id}`, {
+                const response = await fetch(`${API_BASE_URL}/api/dashboard/students/${id}`, {
                     method: 'DELETE'
                 });
                 
