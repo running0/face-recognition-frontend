@@ -367,13 +367,19 @@
                     url += `&class=${encodeURIComponent(currentClassFilter)}`;
                 }
                 
+                console.log('加载学生列表:', url);
                 const response = await fetch(url);
+                console.log('响应状态:', response.status);
                 const data = await response.json();
+                console.log('响应数据:', data);
                 
                 renderStudentsTable(data.students);
                 renderPagination(data.pagination);
             } catch (error) {
                 console.error('加载学生列表失败:', error);
+                // 显示错误信息
+                const tbody = document.getElementById('students-table');
+                tbody.innerHTML = '<tr><td colspan="6" class="empty-state">加载失败，请刷新页面重试</td></tr>';
             }
         }
         
